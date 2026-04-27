@@ -1,1 +1,3 @@
 # HostelManagement
+
+HostelManagement index output :
