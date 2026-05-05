@@ -1,38 +1,43 @@
 package com.servlet;
 
+import com.dao.HostelDAO;
 import javax.servlet.*;
 import javax.servlet.http.*;
-import java.io.*;
-import com.dao.HostelDAO;
+import javax.servlet.annotation.WebServlet;
+import java.io.IOException;
 
+ 
 public class DeleteStudentServlet extends HttpServlet {
 
-    protected void doGet(HttpServletRequest req, HttpServletResponse res)
-            throws ServletException, IOException {
-
-        try {
-            int id = Integer.parseInt(req.getParameter("id"));
-
-            HostelDAO dao = new HostelDAO();
-
-            // ✅ CHECK + DELETE
-            if (dao.deleteStudent(id)) {
-
-                res.sendRedirect("studentdisplay.jsp?msg=deleted");
-
-            } else {
-
-                res.sendRedirect("studentdisplay.jsp?msg=notfound");
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+    private HostelDAO dao = new HostelDAO();
 
     protected void doPost(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
 
-        doGet(req, res);
+        try {
+            String idStr = req.getParameter("studentID");
+
+            // ✅ VALIDATION
+            if (idStr == null || idStr.trim().isEmpty()) {
+                req.setAttribute("message", "Please enter Student ID!");
+                req.setAttribute("msgType", "error");
+                req.getRequestDispatcher("studentdelete.jsp").forward(req, res);
+                return;
+            }
+
+            int id = Integer.parseInt(idStr);
+
+            boolean ok = dao.deleteStudent(id);
+
+            req.setAttribute("message", ok ? "Student deleted successfully!" : "Student not found!");
+            req.setAttribute("msgType", ok ? "success" : "error");
+
+        } catch (Exception e) {
+            req.setAttribute("message", "Error: " + e.getMessage());
+            req.setAttribute("msgType", "error");
+        }
+
+        req.getRequestDispatcher("studentdelete.jsp").forward(req, res);
     }
+
 }

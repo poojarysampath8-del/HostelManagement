@@ -1,159 +1,218 @@
 package com.dao;
 
-import java.sql.*;
-import java.util.*;
 import com.model.Student;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class HostelDAO {
 
-    Connection con;
+    private static final String URL = "jdbc:mysql://localhost:3306/hostel_db";
+    private static final String USER = "root";
+    private static final String PASSWORD = "sampath@123";
 
-    // 🔹 Constructor (DB Connection)
-    public HostelDAO() {
+    static {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-
-            con = DriverManager.getConnection(
-                "jdbc:mysql://localhost:3306/hostel_db?useSSL=false&serverTimezone=UTC",
-                "root",
-                "sampath@123"
-            );
-
-            System.out.println("✅ Connected!");
-
-        } catch (Exception e) {
-            System.out.println("❌ Connection Failed:");
-            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("MySQL Driver not found", e);
         }
     }
 
-    // 🔹 ADD
-    public void addStudent(Student s) throws Exception {
-        PreparedStatement ps = con.prepareStatement(
-            "INSERT INTO HostelStudents VALUES (?, ?, ?, ?, ?, ?)");
-
-        ps.setInt(1, s.getStudentID());
-        ps.setString(2, s.getStudentName());
-        ps.setString(3, s.getRoomNumber());
-        ps.setDate(4, new java.sql.Date(s.getAdmissionDate().getTime()));
-        ps.setDouble(5, s.getFeesPaid());
-        ps.setDouble(6, s.getPendingFees());
-
-        ps.executeUpdate();
+    private Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(URL, USER, PASSWORD);
     }
 
-    // 🔹 UPDATE
-    public void updateStudent(Student s) throws Exception {
-        PreparedStatement ps = con.prepareStatement(
-            "UPDATE HostelStudents SET StudentName=?, RoomNumber=?, FeesPaid=?, PendingFees=? WHERE StudentID=?");
-
-        ps.setString(1, s.getStudentName());
-        ps.setString(2, s.getRoomNumber());
-        ps.setDouble(3, s.getFeesPaid());
-        ps.setDouble(4, s.getPendingFees());
-        ps.setInt(5, s.getStudentID());
-
-        ps.executeUpdate();
+    // 🔁 Convert ResultSet → Student object
+    private Student mapRow(ResultSet rs) throws SQLException {
+        Student s = new Student();
+        s.setStudentID(rs.getInt("StudentID"));
+        s.setStudentName(rs.getString("StudentName"));
+        s.setRoomNumber(rs.getString("RoomNumber"));
+        s.setAdmissionDate(rs.getDate("AdmissionDate"));
+        s.setFeesPaid(rs.getBigDecimal("FeesPaid"));
+        s.setPendingFees(rs.getBigDecimal("PendingFees"));
+        return s;
     }
 
-    // 🔹 DELETE
- // 🔹 CHECK IF STUDENT EXISTS
-    public boolean studentExists(int id) throws Exception {
+    // ✅ CORRECT METHOD (FIXED)
+    public int getNextStudentID() {
+        String sql = "SELECT MAX(StudentID) FROM HostelStudents";
 
-        PreparedStatement ps = con.prepareStatement(
-            "SELECT * FROM HostelStudents WHERE StudentID=?");
+        try (Connection con = getConnection();
+             Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
 
-        ps.setInt(1, id);
+            if (rs.next()) {
+                int maxId = rs.getInt(1);
+                return maxId + 1;  // ✅ Correct next ID
+            }
 
-        ResultSet rs = ps.executeQuery();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
-        return rs.next(); // true if exists
+        return 1; // if table empty
     }
 
+    // ➕ Add Student (AUTO_INCREMENT handles ID)
+    public boolean addStudent(Student s) {
+        String sql = "INSERT INTO HostelStudents (StudentName, RoomNumber, AdmissionDate, FeesPaid, PendingFees) VALUES (?,?,?,?,?)";
 
-    // 🔹 DELETE
-    public boolean deleteStudent(int id) throws Exception {
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
 
-        PreparedStatement ps = con.prepareStatement(
-            "DELETE FROM HostelStudents WHERE StudentID=?");
+            ps.setString(1, s.getStudentName());
+            ps.setString(2, s.getRoomNumber());
+            ps.setDate(3, s.getAdmissionDate());
+            ps.setBigDecimal(4, s.getFeesPaid());
+            ps.setBigDecimal(5, s.getPendingFees());
 
-        ps.setInt(1, id);
+            return ps.executeUpdate() > 0;
 
-        int rows = ps.executeUpdate();
-
-        return rows > 0; // true if deleted
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
-
-    // 🔹 DISPLAY ALL
-    public List<Student> getAllStudents() throws Exception {
-        Statement st = con.createStatement();
-        ResultSet rs = st.executeQuery("SELECT * FROM HostelStudents");
-        return extract(rs);
-    }
-
-    // 🔍 SEARCH BY NAME (NEW FEATURE)
-    public List<Student> searchStudent(String name) throws Exception {
-
+    // 📋 Get All Students
+    public List<Student> getAllStudents() {
         List<Student> list = new ArrayList<>();
 
-        PreparedStatement ps = con.prepareStatement(
-            "SELECT * FROM HostelStudents WHERE StudentName LIKE ?");
+        try (Connection con = getConnection();
+             Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery("SELECT * FROM HostelStudents ORDER BY StudentID")) {
 
-        ps.setString(1, "%" + name + "%");
+            while (rs.next()) {
+                list.add(mapRow(rs));
+            }
 
-        ResultSet rs = ps.executeQuery();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
-        return extract(rs);
+        return list;
     }
 
-    // 🔹 REPORT: Pending Fees
-    public List<Student> getPendingFees() throws Exception {
-        return getByQuery("SELECT * FROM HostelStudents WHERE PendingFees > 0");
+    // 🔍 Get Student by ID
+    public Student getStudentById(int id) {
+        String sql = "SELECT * FROM HostelStudents WHERE StudentID=?";
+
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return mapRow(rs);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
-    // 🔹 REPORT: By Room
-    public List<Student> getByRoom(String room) throws Exception {
-        PreparedStatement ps = con.prepareStatement(
-            "SELECT * FROM HostelStudents WHERE RoomNumber=?");
+    // ✏️ Update Student
+    public boolean updateStudent(Student s) {
+        String sql = "UPDATE HostelStudents SET StudentName=?, RoomNumber=?, AdmissionDate=?, FeesPaid=?, PendingFees=? WHERE StudentID=?";
 
-        ps.setString(1, room);
-        return extract(ps.executeQuery());
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, s.getStudentName());
+            ps.setString(2, s.getRoomNumber());
+            ps.setDate(3, s.getAdmissionDate());
+            ps.setBigDecimal(4, s.getFeesPaid());
+            ps.setBigDecimal(5, s.getPendingFees());
+            ps.setInt(6, s.getStudentID());
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
-    // 🔹 REPORT: By Date
-    public List<Student> getByDate(String from, String to) throws Exception {
-        PreparedStatement ps = con.prepareStatement(
-            "SELECT * FROM HostelStudents WHERE AdmissionDate BETWEEN ? AND ?");
+    // ❌ Delete Student
+    public boolean deleteStudent(int id) {
+        String sql = "DELETE FROM HostelStudents WHERE StudentID=?";
 
-        ps.setString(1, from);
-        ps.setString(2, to);
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
 
-        return extract(ps.executeQuery());
+            ps.setInt(1, id);
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
-    // 🔹 COMMON QUERY METHOD
-    private List<Student> getByQuery(String query) throws Exception {
-        Statement st = con.createStatement();
-        return extract(st.executeQuery(query));
-    }
-
-    // 🔹 RESULTSET → LIST CONVERSION (REUSABLE)
-    private List<Student> extract(ResultSet rs) throws Exception {
-
+    // 📊 Report 1: Pending Fees
+    public List<Student> getStudentsWithPendingFees() {
         List<Student> list = new ArrayList<>();
 
-        while (rs.next()) {
-            Student s = new Student();
+        try (Connection con = getConnection();
+             Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery("SELECT * FROM HostelStudents WHERE PendingFees > 0")) {
 
-            s.setStudentID(rs.getInt(1));
-            s.setStudentName(rs.getString(2));
-            s.setRoomNumber(rs.getString(3));
-            s.setAdmissionDate(rs.getDate(4));
-            s.setFeesPaid(rs.getDouble(5));
-            s.setPendingFees(rs.getDouble(6));
+            while (rs.next()) {
+                list.add(mapRow(rs));
+            }
 
-            list.add(s);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    // 📊 Report 2: By Room
+    public List<Student> getStudentsByRoom(String room) {
+        List<Student> list = new ArrayList<>();
+
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement("SELECT * FROM HostelStudents WHERE RoomNumber=?")) {
+
+            ps.setString(1, room);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                list.add(mapRow(rs));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    // 📊 Report 3: By Date Range
+    public List<Student> getStudentsByDateRange(Date from, Date to) {
+        List<Student> list = new ArrayList<>();
+
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(
+                     "SELECT * FROM HostelStudents WHERE AdmissionDate BETWEEN ? AND ?")) {
+
+            ps.setDate(1, from);
+            ps.setDate(2, to);
+
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                list.add(mapRow(rs));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
 
         return list;

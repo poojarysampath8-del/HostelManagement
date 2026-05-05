@@ -1,118 +1,37 @@
-<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-
+<%@ page language="java" contentType="text/html; charset=UTF-8" %>
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
 <title>Reports</title>
-
 <style>
-    body {
-        font-family: Arial;
-        background: #f4f6f9;
-        text-align: center;
-    }
-
-    h2 {
-        margin-top: 30px;
-        color: #333;
-    }
-
-    .box {
-        width: 400px;
-        margin: 30px auto;
-        padding: 25px;
-        background: white;
-        box-shadow: 0px 0px 10px #ccc;
-        border-radius: 10px;
-    }
-
-    select, input {
-        width: 90%;
-        padding: 10px;
-        margin: 10px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-    }
-
-    .btn {
-        padding: 10px 20px;
-        background: #4CAF50;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-    }
-
-    .btn:hover {
-        background: #45a049;
-    }
-
-    .back {
-        margin-top: 15px;
-        display: inline-block;
-        text-decoration: none;
-        color: white;
-        background: #4CAF50;
-        padding: 8px 15px;
-        border-radius: 5px;
-    }
-
-    .back:hover {
-        background: #45a049;
-    }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e;
+         min-height: 100vh; display: flex; flex-direction: column;
+         align-items: center; justify-content: center; }
+  .card { background: #16213e; border-radius: 16px; padding: 40px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.4); width: 340px; }
+  .title { text-align: center; margin-bottom: 28px; }
+  .title h2 { color: #f39c12; font-size: 22px; }
+  .title p  { color: #a8a8b3; font-size: 13px; margin-top: 6px; }
+  .menu-item a {
+      display: block; padding: 13px 18px; margin: 10px 0;
+      background: #0f3460; color: #e0e0e0; border-radius: 10px;
+      text-decoration: none; font-size: 15px;
+      border-left: 4px solid #f39c12; transition: all 0.2s; }
+  .menu-item a:hover { background: #f39c12; color: #1a1a2e; padding-left: 24px; }
+  .back { display: block; text-align: center; margin-top: 20px;
+          color: #a8a8b3; text-decoration: none; font-size: 13px; }
+  .back:hover { color: #f39c12; }
 </style>
-
-<script>
-function showFields() {
-    var type = document.getElementById("reportType").value;
-
-    document.getElementById("roomField").style.display = "none";
-    document.getElementById("dateField").style.display = "none";
-
-    if (type === "room") {
-        document.getElementById("roomField").style.display = "block";
-    } else if (type === "date") {
-        document.getElementById("dateField").style.display = "block";
-    }
-}
-</script>
-
 </head>
 <body>
-
-<h2>📊 Generate Reports</h2>
-
-<div class="box">
-
-<form action="ReportServlet" method="get">
-
-    <select name="type" id="reportType" onchange="showFields()" required>
-        <option value="">-- Select Report Type --</option>
-        <option value="pending">Students with Pending Fees</option>
-        <option value="room">Students by Room</option>
-        <option value="date">Students by Date</option>
-    </select>
-
-    <!-- Room Input -->
-    <div id="roomField" style="display:none;">
-        <input type="text" name="room" placeholder="Enter Room Number">
-    </div>
-
-    <!-- Date Input -->
-    <div id="dateField" style="display:none;">
-        <input type="date" name="from">
-        <input type="date" name="to">
-    </div>
-
-    <br>
-    <button type="submit" class="btn">Generate Report</button>
-
-</form>
-
+<div class="card">
+  <div class="title">
+    <h2>&#128196; Reports</h2>
+    <p>Generate hostel reports</p>
+  </div>
+  <div class="menu-item"><a href="ReportCriteriaServlet">&#128202; Generate Report</a></div>
+  <div class="menu-item"><a href="DisplayStudentsServlet">&#128203; View All Students</a></div>
+  <a href="index.jsp" class="back">&#8592; Back to Home</a>
 </div>
-
-<a href="index.jsp" class="back">🏠 Back to Home</a>
-
 </body>
-</html>

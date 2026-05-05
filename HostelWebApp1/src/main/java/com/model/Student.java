@@ -1,15 +1,19 @@
 package com.model;
 
-import java.util.Date;
+import java.math.BigDecimal;
+import java.sql.Date;
 
 public class Student {
     private int studentID;
     private String studentName;
     private String roomNumber;
     private Date admissionDate;
-    private double feesPaid;
-    private double pendingFees;
+    private BigDecimal feesPaid;
+    private BigDecimal pendingFees;
 
+    public Student() {}
+
+    // Getters & Setters
     public int getStudentID() { return studentID; }
     public void setStudentID(int studentID) { this.studentID = studentID; }
 
@@ -22,9 +26,9 @@ public class Student {
     public Date getAdmissionDate() { return admissionDate; }
     public void setAdmissionDate(Date admissionDate) { this.admissionDate = admissionDate; }
 
-    public double getFeesPaid() { return feesPaid; }
-    public void setFeesPaid(double feesPaid) { this.feesPaid = feesPaid; }
+    public BigDecimal getFeesPaid() { return feesPaid; }
+    public void setFeesPaid(BigDecimal feesPaid) { this.feesPaid = feesPaid; }
 
-    public double getPendingFees() { return pendingFees; }
-    public void setPendingFees(double pendingFees) { this.pendingFees = pendingFees; }
+    public BigDecimal getPendingFees() { return pendingFees; }
+    public void setPendingFees(BigDecimal pendingFees) { this.pendingFees = pendingFees; }
 }
